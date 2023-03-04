@@ -111,3 +111,17 @@ resource "aws_default_security_group" "application-security-group" {
     Name = "${var.title}-default-security-group"
   }
 }
+
+resource "aws_instance" "web" {
+  ami           = "ami-0ffac3e16de16665e"
+  instance_type = "t2.micro"
+  associate_public_ip_address = true
+  availability_zone = "ap-northeast-1a"
+  subnet_id = aws_subnet.public-subnet-1a.id
+  
+  
+
+  tags = {
+    Name = "${var.title}-EC2"
+  }
+}
