@@ -43,8 +43,8 @@ resource "aws_subnet" "public-subnet-1a" {
 }
 
 resource "aws_subnet" "private-subnet-1a" {
-  vpc_id     = aws_vpc.vpc.id
-  cidr_block = "10.0.2.0/24"
+  vpc_id                  = aws_vpc.vpc.id
+  cidr_block              = "10.0.2.0/24"
   availability_zone       = "ap-northeast-1a"
   map_public_ip_on_launch = false
 
@@ -139,7 +139,7 @@ resource "aws_instance" "web" {
   subnet_id                   = aws_subnet.public-subnet-1a.id
   associate_public_ip_address = true
   key_name                    = "key"
-  vpc_security_group_ids = [ aws_security_group.web-security-group.id ]
+  vpc_security_group_ids      = [aws_security_group.web-security-group.id]
 
   tags = {
     Name = "${var.title}-EC2-Web"
@@ -149,6 +149,10 @@ resource "aws_instance" "web" {
 resource "aws_eip" "elastic-ip" {
   instance = aws_instance.web.id
   vpc      = true
+  tags = {
+    Name = "${var.title}-EC2-DB"
+  }
+
 }
 
 # -----------------
@@ -210,9 +214,48 @@ resource "aws_instance" "db" {
   subnet_id                   = aws_subnet.private-subnet-1a.id
   associate_public_ip_address = false
   key_name                    = "key"
-  vpc_security_group_ids = [ aws_security_group.db-security-group.id ]
+  vpc_security_group_ids      = [aws_security_group.db-security-group.id]
 
   tags = {
     Name = "${var.title}-EC2-DB"
+  }
+}
+
+# -----------------
+# CHAPTER7
+# -----------------
+
+resource "aws_eip" "elastic-ip-natgateway" {
+  vpc = true
+  tags = {
+    Name = "${var.title}-NATGateway"
+  }
+
+}
+
+resource "aws_nat_gateway" "nat-gateway" {
+  connectivity_type = "public"
+  allocation_id     = aws_eip.elastic-ip-natgateway.id
+  subnet_id         = aws_subnet.public-subnet-1a.id
+
+  tags = {
+    Name = "${var.title}-NATGateway"
+  }
+
+  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # on the Internet Gateway for the VPC.
+  depends_on = [aws_internet_gateway.internet-gateway]
+}
+
+resource "aws_default_route_table" "route-table-nat" {
+  default_route_table_id = aws_vpc.vpc.default_route_table_id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_nat_gateway.nat-gateway.id
+  }
+
+  tags = {
+    Name = "${var.title}-route-table-private"
   }
 }
