@@ -28,26 +28,26 @@ resource "aws_vpc" "vpc" {
 }
 
 resource "aws_subnet" "public-subnet-1a" {
-  vpc_id                  = aws_vpc.vpc.id
-  cidr_block              = "10.0.1.0/24"
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = "10.0.1.0/24"
   availability_zone       = "ap-northeast-1a"
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.title}-public-subnet-1a"
+    Name = "${var.title}-public-subnet"
   }
 }
 
-resource "aws_subnet" "public-subnet-1c" {
-  vpc_id                  = aws_vpc.vpc.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "ap-northeast-1c"
-  map_public_ip_on_launch = true
+# resource "aws_subnet" "private-subnet-1a" {
+#   vpc_id     = aws_vpc.vpc.id
+#   cidr_block = "10.0.2.0/24"
+#   availability_zone       = "ap-northeast-1a"
+#   map_public_ip_on_launch = false
 
-  tags = {
-    Name = "${var.title}-public-subnet-1c"
-  }
-}
+#   tags = {
+#     Name = "${var.title}-private-subnet"
+#   }
+# }
 
 resource "aws_internet_gateway" "internet-gateway" {
   vpc_id = aws_vpc.vpc.id
@@ -57,71 +57,20 @@ resource "aws_internet_gateway" "internet-gateway" {
   }
 }
 
-resource "aws_default_route_table" "default-route-table" {
-  default_route_table_id = aws_vpc.vpc.default_route_table_id
+resource "aws_route_table" "example" {
+  vpc_id = aws_vpc.vpc.id
 
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.internet-gateway.id
-  }
+    }
 
   tags = {
-    Name = "${var.title}-default-route-table"
+    Name = "example"
   }
 }
 
-resource "aws_route_table_association" "public-subnet-1a" {
+resource "aws_route_table_association" "a" {
   subnet_id      = aws_subnet.public-subnet-1a.id
-  route_table_id = aws_default_route_table.default-route-table.id
-}
-
-resource "aws_route_table_association" "bpublic-subnet-1c" {
-  subnet_id      = aws_subnet.public-subnet-1c.id
-  route_table_id = aws_default_route_table.default-route-table.id
-}
-
-resource "aws_default_security_group" "application-security-group" {
-  vpc_id = aws_vpc.vpc.id
-
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "All Trafic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.title}-default-security-group"
-  }
-}
-
-resource "aws_instance" "web" {
-  ami           = "ami-0ffac3e16de16665e"
-  instance_type = "t2.micro"
-  associate_public_ip_address = true
-  availability_zone = "ap-northeast-1a"
-  subnet_id = aws_subnet.public-subnet-1a.id
-  
-  
-
-  tags = {
-    Name = "${var.title}-EC2"
-  }
+  route_table_id = aws_route_table.example.id
 }
