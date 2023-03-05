@@ -84,12 +84,12 @@ resource "aws_route_table_association" "a" {
 # -----------------
 
 resource "aws_security_group" "web-security-group" {
-  name        = "${var.title}-security-group"
+  name        = "${var.title}-web-security-group"
   description = "security-group"
   vpc_id      = aws_vpc.vpc.id
 
   tags = {
-    Name = "${var.title}-security-group"
+    Name = "${var.title}-web-security-group"
   }
 }
 
@@ -149,4 +149,70 @@ resource "aws_instance" "web" {
 resource "aws_eip" "elastic-ip" {
   instance = aws_instance.web.id
   vpc      = true
+}
+
+# -----------------
+# CHAPTER6
+# -----------------
+
+resource "aws_security_group" "db-security-group" {
+  name        = "${var.title}-db-security-group"
+  description = "security-group"
+  vpc_id      = aws_vpc.vpc.id
+
+  tags = {
+    Name = "${var.title}-db-security-group"
+  }
+}
+
+resource "aws_security_group_rule" "db-security-group-role-ingress-SSH" {
+  type        = "ingress"
+  description = "security-group-role-ingress-SSH"
+  from_port   = 22
+  to_port     = 22
+  protocol    = "tcp"
+  cidr_blocks = [
+    "0.0.0.0/0"
+  ]
+
+  security_group_id = aws_security_group.db-security-group.id
+}
+
+resource "aws_security_group_rule" "db-security-group-role-ingress-MYSQL" {
+  type        = "ingress"
+  description = "security-group-role-ingress-MYSQL"
+  from_port   = 3306
+  to_port     = 3306
+  protocol    = "tcp"
+  cidr_blocks = [
+    "0.0.0.0/0"
+  ]
+
+  security_group_id = aws_security_group.db-security-group.id
+}
+
+resource "aws_security_group_rule" "db-security-group-role-ingress-ICMP" {
+  type        = "ingress"
+  description = "security-group-role-ingress-ICMP"
+  from_port   = -1
+  to_port     = -1
+  protocol    = "icmp"
+  cidr_blocks = [
+    "0.0.0.0/0"
+  ]
+
+  security_group_id = aws_security_group.db-security-group.id
+}
+
+resource "aws_instance" "db" {
+  ami                         = "ami-0329eac6c5240c99d"
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.private-subnet-1a.id
+  associate_public_ip_address = false
+  key_name                    = "key"
+  vpc_security_group_ids = [ aws_security_group.db-security-group.id ]
+
+  tags = {
+    Name = "${var.title}-EC2-DB"
+  }
 }
